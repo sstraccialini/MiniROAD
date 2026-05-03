@@ -35,6 +35,29 @@ class OadLoss(nn.Module):
 
     def forward(self, out_dict, target): 
         return self.loss(out_dict, target)
+
+
+@CRITERIONS.register('BCE_MASKED')
+class MaskedBCEWithLogitsLoss(nn.Module):
+
+    def __init__(self, cfg, reduction='sum'):
+        super(MaskedBCEWithLogitsLoss, self).__init__()
+        self.reduction = reduction
+        self.num_classes = cfg['num_classes']
+        self.loss_fn = nn.BCEWithLogitsLoss(reduction='none')
+
+    def forward(self, out_dict, target, mask=None):
+        logits = out_dict['logits']
+        if mask is None:
+            mask = torch.ones(logits.shape[:2], device=logits.device, dtype=logits.dtype)
+        else:
+            mask = mask.to(device=logits.device, dtype=logits.dtype)
+        target = target.to(device=logits.device, dtype=logits.dtype)
+        loss = self.loss_fn(logits, target)
+        loss = loss * mask.unsqueeze(-1)
+        loss = loss.sum()
+        normalizer = mask.sum().clamp_min(1.0)
+        return loss / normalizer
     
 
 @CRITERIONS.register('ANTICIPATION')

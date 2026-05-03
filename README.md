@@ -82,6 +82,26 @@ Download the officially available pre-extracted features from [`FineAction`](htt
     python main.py --config $PATH_TO_CONFIG_FILE 
     ```
 
+## Toyota Smarthome Untrimmed (TSU)
+
+TSU uses pre-extracted RGB I3D features stored under a single feature root, one file per video id. The loader first looks for `P11T15C01.npy`, then `.npz`, then `.pt`.
+
+Train:
+
+    ```
+    cd MiniROAD
+    python train.py --config configs/tsu_i3d.yaml --feature_root /path/to/tsu_features_i3d
+    ```
+
+Evaluate:
+
+    ```
+    cd MiniROAD
+    python train.py --config configs/tsu_i3d.yaml --feature_root /path/to/tsu_features_i3d --eval /path/to/checkpoint.pth
+    ```
+
+The TSU adapter uses masked multilabel evaluation with per-frame mAP and cAP, and keeps the fixed `T_max=2500` convention used by the MS-Temba baseline.
+
 ## Inference from checkpoint
 
     ```

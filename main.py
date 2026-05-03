@@ -15,17 +15,25 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--config', type=str, default='./configs/miniroad_thumos_kinetics.yaml')
     parser.add_argument('--eval', type=str, default=None)
-    parser.add_argument('--amp', action='store_true')
-    parser.add_argument('--tensorboard', action='store_true')
-    parser.add_argument('--lr_scheduler', action='store_true')
-    parser.add_argument('--no_rgb', action='store_true')
-    parser.add_argument('--no_flow', action='store_true')
+    parser.add_argument('--amp', action='store_true', default=None)
+    parser.add_argument('--tensorboard', action='store_true', default=None)
+    parser.add_argument('--lr_scheduler', action='store_true', default=None)
+    parser.add_argument('--no_rgb', action='store_true', default=None)
+    parser.add_argument('--no_flow', action='store_true', default=None)
+    parser.add_argument('--feature_root', type=str, default=None)
     args = parser.parse_args()
 
     # combine argparse and yaml
     opt = yaml.load(open(args.config), Loader=yaml.FullLoader)
-    opt.update(vars(args))
+    cli_args = {key: value for key, value in vars(args).items() if value is not None}
+    opt.update(cli_args)
     cfg = opt
+    cfg.setdefault('amp', False)
+    cfg.setdefault('tensorboard', False)
+    cfg.setdefault('lr_scheduler', False)
+    cfg.setdefault('no_rgb', False)
+    cfg.setdefault('no_flow', False)
+    cfg.setdefault('feature_root', None)
 
     set_seed(20)
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -66,10 +74,11 @@ if __name__ == '__main__':
         epoch_loss = train_one_epoch(trainloader, model, criterion, optimizer, scaler, epoch, writer, scheduler=scheduler)
         trainloader.dataset._init_features()
         mAP = evaluate(model, testloader, logger)
+        metric_label = cfg["metric"] if cfg["metric"].startswith('c') else f'm{cfg["metric"]}'
         if mAP > best_mAP:
             best_mAP = mAP
             best_epoch = epoch
             torch.save(model.state_dict(), osp.join(result_path, 'ckpts', 'best.pth'))
-        logger.info(f'Epoch {epoch} mAP: {mAP*100:.2f} | Best mAP: {best_mAP*100:.2f} at epoch {best_epoch}, iter {epoch*cfg["batch_size"]*len(trainloader)} | train_loss: {epoch_loss/len(trainloader):.4f}, lr: {optimizer.param_groups[0]["lr"]:.7f}')
+        logger.info(f'Epoch {epoch} {metric_label}: {mAP*100:.2f} | Best {metric_label}: {best_mAP*100:.2f} at epoch {best_epoch}, iter {epoch*cfg["batch_size"]*len(trainloader)} | train_loss: {epoch_loss/len(trainloader):.4f}, lr: {optimizer.param_groups[0]["lr"]:.7f}')
         
     os.rename(osp.join(result_path, 'ckpts', 'best.pth'), osp.join(result_path, 'ckpts', f'best_{best_mAP*100:.2f}.pth'))

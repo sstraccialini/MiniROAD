@@ -5,38 +5,77 @@ import time
 from utils import thumos_postprocessing
 from utils import *
 import json
+import numpy as np
 from trainer.eval_builder import EVAL
 from utils import thumos_postprocessing, perframe_average_precision
+from utils.metrics import masked_multilabel_perframe_metrics
 
 @EVAL.register("OAD")
 class Evaluate(nn.Module):
     
     def __init__(self, cfg):
         super(Evaluate, self).__init__()
+        self.multi_label = cfg.get('multi_label', False)
         self.data_processing = thumos_postprocessing if 'THUMOS' in cfg['data_name'] else None
         self.metric = cfg['metric']
         self.eval_method = perframe_average_precision
-        self.all_class_names = json.load(open(cfg['video_list_path']))[cfg["data_name"].split('_')[0]]['class_index']
+        if self.multi_label:
+            self.all_class_names = [str(i) for i in range(cfg['num_classes'])]
+        else:
+            self.all_class_names = json.load(open(cfg['video_list_path']))[cfg["data_name"].split('_')[0]]['class_index']
     
     def eval(self, model, dataloader, logger):
         device = "cuda:0"
         model.eval()   
         with torch.no_grad():
-            pred_scores, gt_targets = [], []
+            pred_scores, gt_targets, masks = [], [], []
             start = time.time()
-            for rgb_input, flow_input, target in tqdm(dataloader, desc='Evaluation:', leave=False):
-                rgb_input, flow_input, target = rgb_input.to(device), flow_input.to(device), target.to(device)
-                out_dict = model(rgb_input, flow_input)
-                pred_logit = out_dict['logits']
-                prob_val = pred_logit.squeeze().cpu().numpy()
-                target_batch = target.squeeze().cpu().numpy()
-                pred_scores += list(prob_val) 
-                gt_targets += list(target_batch)
+            if self.multi_label:
+                captured_logits = []
+
+                def capture_logits(_module, _inputs, output):
+                    captured_logits.append(output.detach())
+
+                hook_handle = model.f_classification.register_forward_hook(capture_logits)
+            else:
+                hook_handle = None
+
+            for batch in tqdm(dataloader, desc='Evaluation:', leave=False):
+                if self.multi_label:
+                    rgb_input, target, mask, _, _ = batch
+                    flow_input = rgb_input.new_empty(rgb_input.size(0), rgb_input.size(1), 0)
+                    rgb_input, target, mask = rgb_input.to(device), target.to(device), mask.to(device)
+                    flow_input = flow_input.to(device)
+                    out_dict = model(rgb_input, flow_input)
+                    pred_scores.append(captured_logits.pop().cpu().numpy())
+                    gt_targets.append(target.cpu().numpy())
+                    masks.append(mask.cpu().numpy())
+                else:
+                    rgb_input, flow_input, target = batch
+                    rgb_input, flow_input, target = rgb_input.to(device), flow_input.to(device), target.to(device)
+                    out_dict = model(rgb_input, flow_input)
+                    pred_logit = out_dict['logits']
+                    prob_val = pred_logit.squeeze().cpu().numpy()
+                    target_batch = target.squeeze().cpu().numpy()
+                    pred_scores += list(prob_val) 
+                    gt_targets += list(target_batch)
             end = time.time()
-            num_frames = len(gt_targets)
-            result = self.eval_method(pred_scores, gt_targets, self.all_class_names, self.data_processing, self.metric)
+            if hook_handle is not None:
+                hook_handle.remove()
+            if self.multi_label:
+                pred_scores = np.concatenate(pred_scores, axis=0)
+                gt_targets = np.concatenate(gt_targets, axis=0)
+                masks = np.concatenate(masks, axis=0)
+                result = masked_multilabel_perframe_metrics(pred_scores, gt_targets, masks, self.all_class_names)
+                num_frames = int(masks.sum())
+                logger.info(f'TSU mAP: {result["mAP"]*100:.2f} | cAP: {result["cAP"]*100:.2f}')
+            else:
+                num_frames = len(gt_targets)
+                result = self.eval_method(pred_scores, gt_targets, self.all_class_names, self.data_processing, self.metric)
             time_taken = end - start
             logger.info(f'Processed {num_frames} frames in {time_taken:.1f} seconds ({num_frames / time_taken :.1f} FPS)')
+        if self.multi_label:
+            return result[self.metric]
         return result['mean_AP']
     
     def forward(self, model, dataloader, logger):

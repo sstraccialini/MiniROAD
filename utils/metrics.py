@@ -128,3 +128,29 @@ def perstage_average_precision(prediction, ground_truth,
             np.mean(list(result[stage_name]['per_class_AP'].values()))
 
     return result
+
+
+def masked_multilabel_perframe_metrics(prediction, ground_truth, mask, class_names):
+    prediction = np.asarray(prediction)
+    ground_truth = np.asarray(ground_truth)
+    mask = np.asarray(mask).astype(bool)
+
+    if prediction.ndim == 3:
+        prediction = prediction[mask]
+    if ground_truth.ndim == 3:
+        ground_truth = ground_truth[mask]
+
+    result = OrderedDict()
+    result['per_class_mAP'] = OrderedDict()
+    result['per_class_cAP'] = OrderedDict()
+
+    for idx, class_name in enumerate(class_names):
+        if np.any(ground_truth[:, idx]):
+            ap_score = average_precision_score(ground_truth[:, idx], prediction[:, idx])
+            cap_score = calibrated_average_precision_score(ground_truth[:, idx], prediction[:, idx])
+            result['per_class_mAP'][class_name] = ap_score
+            result['per_class_cAP'][class_name] = cap_score
+
+    result['mAP'] = np.mean(list(result['per_class_mAP'].values())) if result['per_class_mAP'] else 0.0
+    result['cAP'] = np.mean(list(result['per_class_cAP'].values())) if result['per_class_cAP'] else 0.0
+    return result
