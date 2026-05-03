@@ -28,6 +28,7 @@ if __name__ == '__main__':
     cli_args = {key: value for key, value in vars(args).items() if value is not None}
     opt.update(cli_args)
     cfg = opt
+    cfg['_config_dir'] = osp.abspath(osp.dirname(args.config))
     cfg.setdefault('amp', False)
     cfg.setdefault('tensorboard', False)
     cfg.setdefault('lr_scheduler', False)
@@ -72,7 +73,8 @@ if __name__ == '__main__':
     best_mAP, best_epoch = 0, 0
     for epoch in range(1, cfg['num_epoch']+1):
         epoch_loss = train_one_epoch(trainloader, model, criterion, optimizer, scaler, epoch, writer, scheduler=scheduler)
-        trainloader.dataset._init_features()
+        if hasattr(trainloader.dataset, '_init_features'):
+            trainloader.dataset._init_features()
         mAP = evaluate(model, testloader, logger)
         metric_label = cfg["metric"] if cfg["metric"].startswith('c') else f'm{cfg["metric"]}'
         if mAP > best_mAP:

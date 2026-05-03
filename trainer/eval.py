@@ -43,7 +43,10 @@ class Evaluate(nn.Module):
             for batch in tqdm(dataloader, desc='Evaluation:', leave=False):
                 if self.multi_label:
                     rgb_input, target, mask, _, _ = batch
-                    flow_input = rgb_input.new_empty(rgb_input.size(0), rgb_input.size(1), 0)
+                    # TSU uses RGB-only inference here (`no_flow: true`), so a
+                    # zero-valued flow tensor keeps the interface consistent
+                    # without introducing undefined empty-tensor behavior.
+                    flow_input = rgb_input.new_zeros(rgb_input.size(0), rgb_input.size(1), rgb_input.size(2))
                     rgb_input, target, mask = rgb_input.to(device), target.to(device), mask.to(device)
                     flow_input = flow_input.to(device)
                     out_dict = model(rgb_input, flow_input)

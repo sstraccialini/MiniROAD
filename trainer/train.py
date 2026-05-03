@@ -11,7 +11,11 @@ def train_one_epoch(trainloader, model, criterion, optimizer, scaler, epoch, wri
             mask = None
         elif len(batch) == 5:
             rgb_input, target, mask, _, _ = batch
-            flow_input = rgb_input.new_empty(rgb_input.size(0), rgb_input.size(1), 0)
+            # TSU runs in RGB-only mode (`no_flow: true`), but MiniROAD still
+            # expects a flow argument. Use a zero-valued placeholder with the
+            # same feature width so the call stays shape-safe if flow is ever
+            # enabled later.
+            flow_input = rgb_input.new_zeros(rgb_input.size(0), rgb_input.size(1), rgb_input.size(2))
         else:
             raise ValueError(f'Unexpected batch format with {len(batch)} elements')
         rgb_input = rgb_input.cuda()
