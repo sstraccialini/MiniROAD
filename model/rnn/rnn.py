@@ -12,7 +12,10 @@ FEATURE_SIZES = {
     'flow_kinetics_resnet50': 2048,
     'flow_nv_kinetics_bninception': 1024,
     'rgb_kinetics_i3d': 2048,
-    'flow_kinetics_i3d': 2048
+    'flow_kinetics_i3d': 2048,
+    # CLIP ViT-L/14 features (768-dim) used for TSU-CLIP and Charades-CLIP
+    'rgb_clip_l14': 768,
+    'flow_clip_l14': 768,
 }
 
 @META_ARCHITECTURES.register("MiniROAD")
