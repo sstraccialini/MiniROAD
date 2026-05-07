@@ -15,4 +15,4 @@ __pycache__/
 data/
 
 # Output files
-output/
+#output/

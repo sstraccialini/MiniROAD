@@ -1,0 +1,155 @@
+{'model': 'MiniROAD', 'data_name': 'CHARADES', 'task': 'OAD', 'loss': 'BCE_MASKED', 'metric': 'mAP', 'optimizer': 'AdamW', 'device': 'cuda', 'feature_pretrained': 'clip', 'root_path': './data/Charades', 'feature_root': '../ASO-Temba/data/charades_features_clip', 'split_file': '../ASO-Temba/data/charades.json', 'output_path': './output', 'window_size': 256, 'T_max': 256, 'batch_size': 5, 'test_batch_size': 1, 'num_epoch': 100, 'lr': 0.0002, 'weight_decay': 0.05, 'num_workers': 0, 'dropout': 0.15, 'num_classes': 157, 'embedding_dim': 2048, 'hidden_dim': 1024, 'num_layers': 1, 'stride': 1, 'input_dim': 768, 'multi_label': True, 'no_rgb': False, 'no_flow': True, 'rgb_type': 'rgb_clip_l14', 'flow_type': 'flow_clip_l14', 'duration_unit': 'seconds', 'config': 'configs/charades_clip.yaml', '_config_dir': '/mnt/beegfsstudents/home/3199302/MiniROAD/configs', 'amp': False, 'tensorboard': False, 'lr_scheduler': False}
+Dataset: CHARADES,  Model: MiniROAD
+lr:0.0002 | Weight Decay:0.05 | Window Size:256 | Batch Size:5
+Total epoch:100 | Total Params:11.2 M | Optimizer: AdamW
+Output Path:./output/MiniROAD_CHARADES_clip_flowFalse
+mAP: 13.76 | cAP: 76.73
+Processed 81209 frames in 30.7 seconds (2646.0 FPS)
+Epoch 1 mmAP: 13.76 | Best mmAP: 13.76 at epoch 1, iter 7985 | train_loss: 12.6949, lr: 0.0002000
+mAP: 21.52 | cAP: 84.85
+Processed 81209 frames in 30.2 seconds (2685.5 FPS)
+Epoch 2 mmAP: 21.52 | Best mmAP: 21.52 at epoch 2, iter 15970 | train_loss: 9.8430, lr: 0.0002000
+mAP: 24.93 | cAP: 87.01
+Processed 81209 frames in 29.6 seconds (2740.8 FPS)
+Epoch 3 mmAP: 24.93 | Best mmAP: 24.93 at epoch 3, iter 23955 | train_loss: 8.8720, lr: 0.0002000
+mAP: 26.51 | cAP: 87.84
+Processed 81209 frames in 29.7 seconds (2733.0 FPS)
+Epoch 4 mmAP: 26.51 | Best mmAP: 26.51 at epoch 4, iter 31940 | train_loss: 8.3069, lr: 0.0002000
+mAP: 27.39 | cAP: 88.28
+Processed 81209 frames in 29.8 seconds (2726.5 FPS)
+Epoch 5 mmAP: 27.39 | Best mmAP: 27.39 at epoch 5, iter 39925 | train_loss: 7.8702, lr: 0.0002000
+mAP: 28.11 | cAP: 88.41
+Processed 81209 frames in 31.1 seconds (2614.0 FPS)
+Epoch 6 mmAP: 28.11 | Best mmAP: 28.11 at epoch 6, iter 47910 | train_loss: 7.5047, lr: 0.0002000
+mAP: 28.66 | cAP: 88.63
+Processed 81209 frames in 31.3 seconds (2594.4 FPS)
+Epoch 7 mmAP: 28.66 | Best mmAP: 28.66 at epoch 7, iter 55895 | train_loss: 7.1387, lr: 0.0002000
+mAP: 28.82 | cAP: 88.62
+Processed 81209 frames in 32.3 seconds (2512.9 FPS)
+Epoch 8 mmAP: 28.82 | Best mmAP: 28.82 at epoch 8, iter 63880 | train_loss: 6.7693, lr: 0.0002000
+mAP: 29.25 | cAP: 88.78
+Processed 81209 frames in 30.5 seconds (2666.9 FPS)
+Epoch 9 mmAP: 29.25 | Best mmAP: 29.25 at epoch 9, iter 71865 | train_loss: 6.4128, lr: 0.0002000
+mAP: 28.66 | cAP: 88.44
+Processed 81209 frames in 30.7 seconds (2648.9 FPS)
+Epoch 10 mmAP: 28.66 | Best mmAP: 29.25 at epoch 9, iter 79850 | train_loss: 6.0544, lr: 0.0002000
+mAP: 28.91 | cAP: 88.55
+Processed 81209 frames in 31.1 seconds (2614.7 FPS)
+Epoch 11 mmAP: 28.91 | Best mmAP: 29.25 at epoch 9, iter 87835 | train_loss: 5.6885, lr: 0.0002000
+mAP: 28.97 | cAP: 88.54
+Processed 81209 frames in 30.7 seconds (2645.2 FPS)
+Epoch 12 mmAP: 28.97 | Best mmAP: 29.25 at epoch 9, iter 95820 | train_loss: 5.3349, lr: 0.0002000
+mAP: 28.58 | cAP: 88.29
+Processed 81209 frames in 29.9 seconds (2716.1 FPS)
+Epoch 13 mmAP: 28.58 | Best mmAP: 29.25 at epoch 9, iter 103805 | train_loss: 4.9733, lr: 0.0002000
+mAP: 28.22 | cAP: 88.06
+Processed 81209 frames in 30.8 seconds (2640.5 FPS)
+Epoch 14 mmAP: 28.22 | Best mmAP: 29.25 at epoch 9, iter 111790 | train_loss: 4.6552, lr: 0.0002000
+mAP: 28.05 | cAP: 88.00
+Processed 81209 frames in 32.1 seconds (2529.6 FPS)
+Epoch 15 mmAP: 28.05 | Best mmAP: 29.25 at epoch 9, iter 119775 | train_loss: 4.3343, lr: 0.0002000
+mAP: 27.94 | cAP: 87.80
+Processed 81209 frames in 30.4 seconds (2671.3 FPS)
+Epoch 16 mmAP: 27.94 | Best mmAP: 29.25 at epoch 9, iter 127760 | train_loss: 4.0208, lr: 0.0002000
+mAP: 27.28 | cAP: 87.53
+Processed 81209 frames in 31.9 seconds (2542.7 FPS)
+Epoch 17 mmAP: 27.28 | Best mmAP: 29.25 at epoch 9, iter 135745 | train_loss: 3.7519, lr: 0.0002000
+mAP: 27.29 | cAP: 87.44
+Processed 81209 frames in 33.1 seconds (2452.8 FPS)
+Epoch 18 mmAP: 27.29 | Best mmAP: 29.25 at epoch 9, iter 143730 | train_loss: 3.4959, lr: 0.0002000
+mAP: 26.90 | cAP: 87.17
+Processed 81209 frames in 30.2 seconds (2684.9 FPS)
+Epoch 19 mmAP: 26.90 | Best mmAP: 29.25 at epoch 9, iter 151715 | train_loss: 3.2601, lr: 0.0002000
+mAP: 26.79 | cAP: 86.97
+Processed 81209 frames in 32.1 seconds (2531.9 FPS)
+Epoch 20 mmAP: 26.79 | Best mmAP: 29.25 at epoch 9, iter 159700 | train_loss: 3.0647, lr: 0.0002000
+mAP: 26.03 | cAP: 86.79
+Processed 81209 frames in 31.4 seconds (2583.8 FPS)
+Epoch 21 mmAP: 26.03 | Best mmAP: 29.25 at epoch 9, iter 167685 | train_loss: 2.8695, lr: 0.0002000
+mAP: 26.10 | cAP: 86.73
+Processed 81209 frames in 31.2 seconds (2599.1 FPS)
+Epoch 22 mmAP: 26.10 | Best mmAP: 29.25 at epoch 9, iter 175670 | train_loss: 2.7033, lr: 0.0002000
+mAP: 26.24 | cAP: 86.76
+Processed 81209 frames in 30.6 seconds (2654.3 FPS)
+Epoch 23 mmAP: 26.24 | Best mmAP: 29.25 at epoch 9, iter 183655 | train_loss: 2.5391, lr: 0.0002000
+mAP: 26.09 | cAP: 86.51
+Processed 81209 frames in 32.0 seconds (2537.9 FPS)
+Epoch 24 mmAP: 26.09 | Best mmAP: 29.25 at epoch 9, iter 191640 | train_loss: 2.3840, lr: 0.0002000
+mAP: 25.77 | cAP: 86.32
+Processed 81209 frames in 30.7 seconds (2643.7 FPS)
+Epoch 25 mmAP: 25.77 | Best mmAP: 29.25 at epoch 9, iter 199625 | train_loss: 2.2742, lr: 0.0002000
+mAP: 25.53 | cAP: 86.13
+Processed 81209 frames in 29.7 seconds (2735.7 FPS)
+Epoch 26 mmAP: 25.53 | Best mmAP: 29.25 at epoch 9, iter 207610 | train_loss: 2.1512, lr: 0.0002000
+mAP: 25.08 | cAP: 85.97
+Processed 81209 frames in 30.8 seconds (2635.7 FPS)
+Epoch 27 mmAP: 25.08 | Best mmAP: 29.25 at epoch 9, iter 215595 | train_loss: 2.0438, lr: 0.0002000
+mAP: 25.29 | cAP: 86.16
+Processed 81209 frames in 30.6 seconds (2655.7 FPS)
+Epoch 28 mmAP: 25.29 | Best mmAP: 29.25 at epoch 9, iter 223580 | train_loss: 1.9683, lr: 0.0002000
+mAP: 24.52 | cAP: 85.65
+Processed 81209 frames in 31.6 seconds (2571.7 FPS)
+Epoch 29 mmAP: 24.52 | Best mmAP: 29.25 at epoch 9, iter 231565 | train_loss: 1.8814, lr: 0.0002000
+mAP: 24.71 | cAP: 85.69
+Processed 81209 frames in 31.4 seconds (2585.2 FPS)
+Epoch 30 mmAP: 24.71 | Best mmAP: 29.25 at epoch 9, iter 239550 | train_loss: 1.8081, lr: 0.0002000
+mAP: 24.67 | cAP: 85.62
+Processed 81209 frames in 30.4 seconds (2670.3 FPS)
+Epoch 31 mmAP: 24.67 | Best mmAP: 29.25 at epoch 9, iter 247535 | train_loss: 1.7215, lr: 0.0002000
+mAP: 24.45 | cAP: 85.31
+Processed 81209 frames in 31.1 seconds (2611.7 FPS)
+Epoch 32 mmAP: 24.45 | Best mmAP: 29.25 at epoch 9, iter 255520 | train_loss: 1.6628, lr: 0.0002000
+mAP: 24.63 | cAP: 85.45
+Processed 81209 frames in 31.8 seconds (2549.8 FPS)
+Epoch 33 mmAP: 24.63 | Best mmAP: 29.25 at epoch 9, iter 263505 | train_loss: 1.6025, lr: 0.0002000
+mAP: 24.38 | cAP: 85.19
+Processed 81209 frames in 29.9 seconds (2713.6 FPS)
+Epoch 34 mmAP: 24.38 | Best mmAP: 29.25 at epoch 9, iter 271490 | train_loss: 1.5540, lr: 0.0002000
+mAP: 24.32 | cAP: 85.22
+Processed 81209 frames in 29.8 seconds (2724.3 FPS)
+Epoch 35 mmAP: 24.32 | Best mmAP: 29.25 at epoch 9, iter 279475 | train_loss: 1.5095, lr: 0.0002000
+mAP: 24.38 | cAP: 85.23
+Processed 81209 frames in 30.3 seconds (2682.3 FPS)
+Epoch 36 mmAP: 24.38 | Best mmAP: 29.25 at epoch 9, iter 287460 | train_loss: 1.4429, lr: 0.0002000
+mAP: 24.33 | cAP: 85.16
+Processed 81209 frames in 32.8 seconds (2475.6 FPS)
+Epoch 37 mmAP: 24.33 | Best mmAP: 29.25 at epoch 9, iter 295445 | train_loss: 1.4268, lr: 0.0002000
+mAP: 24.04 | cAP: 85.10
+Processed 81209 frames in 30.4 seconds (2667.3 FPS)
+Epoch 38 mmAP: 24.04 | Best mmAP: 29.25 at epoch 9, iter 303430 | train_loss: 1.3707, lr: 0.0002000
+mAP: 24.02 | cAP: 85.01
+Processed 81209 frames in 29.3 seconds (2775.3 FPS)
+Epoch 39 mmAP: 24.02 | Best mmAP: 29.25 at epoch 9, iter 311415 | train_loss: 1.3420, lr: 0.0002000
+mAP: 23.96 | cAP: 84.93
+Processed 81209 frames in 32.7 seconds (2482.3 FPS)
+Epoch 40 mmAP: 23.96 | Best mmAP: 29.25 at epoch 9, iter 319400 | train_loss: 1.2999, lr: 0.0002000
+mAP: 24.08 | cAP: 85.11
+Processed 81209 frames in 33.5 seconds (2425.5 FPS)
+Epoch 41 mmAP: 24.08 | Best mmAP: 29.25 at epoch 9, iter 327385 | train_loss: 1.2659, lr: 0.0002000
+mAP: 24.04 | cAP: 85.01
+Processed 81209 frames in 29.9 seconds (2717.7 FPS)
+Epoch 42 mmAP: 24.04 | Best mmAP: 29.25 at epoch 9, iter 335370 | train_loss: 1.2442, lr: 0.0002000
+mAP: 23.68 | cAP: 84.81
+Processed 81209 frames in 31.0 seconds (2619.7 FPS)
+Epoch 43 mmAP: 23.68 | Best mmAP: 29.25 at epoch 9, iter 343355 | train_loss: 1.2189, lr: 0.0002000
+mAP: 24.06 | cAP: 84.85
+Processed 81209 frames in 32.8 seconds (2479.3 FPS)
+Epoch 44 mmAP: 24.06 | Best mmAP: 29.25 at epoch 9, iter 351340 | train_loss: 1.1817, lr: 0.0002000
+mAP: 24.09 | cAP: 84.89
+Processed 81209 frames in 32.2 seconds (2522.0 FPS)
+Epoch 45 mmAP: 24.09 | Best mmAP: 29.25 at epoch 9, iter 359325 | train_loss: 1.1536, lr: 0.0002000
+mAP: 23.89 | cAP: 84.79
+Processed 81209 frames in 31.0 seconds (2618.1 FPS)
+Epoch 46 mmAP: 23.89 | Best mmAP: 29.25 at epoch 9, iter 367310 | train_loss: 1.1475, lr: 0.0002000
+mAP: 23.61 | cAP: 84.56
+Processed 81209 frames in 30.9 seconds (2626.1 FPS)
+Epoch 47 mmAP: 23.61 | Best mmAP: 29.25 at epoch 9, iter 375295 | train_loss: 1.1155, lr: 0.0002000
+mAP: 23.86 | cAP: 84.71
+Processed 81209 frames in 32.2 seconds (2524.1 FPS)
+Epoch 48 mmAP: 23.86 | Best mmAP: 29.25 at epoch 9, iter 383280 | train_loss: 1.0853, lr: 0.0002000
+mAP: 23.92 | cAP: 84.75
+Processed 81209 frames in 32.0 seconds (2538.2 FPS)
+Epoch 49 mmAP: 23.92 | Best mmAP: 29.25 at epoch 9, iter 391265 | train_loss: 1.0683, lr: 0.0002000
+mAP: 23.67 | cAP: 84.65
+Processed 81209 frames in 33.5 seconds (2423.2 FPS)
+Epoch 50 mmAP: 23.67 | Best mmAP: 29.25 at epoch 9, iter 399250 | train_loss: 1.0769, lr: 0.0002000
