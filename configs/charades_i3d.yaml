@@ -9,7 +9,7 @@ feature_pretrained: 'i3d'
 root_path: './data/Charades'
 feature_root: null
 split_file: '../ASO-Temba/data/charades.json'
-output_path: '../ASO-Temba/outputs/Miniroad_charades_i3d'
+output_path: './output'
 window_size: 256
 T_max: 256
 batch_size: 5
