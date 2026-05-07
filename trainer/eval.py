@@ -71,7 +71,7 @@ class Evaluate(nn.Module):
                 masks = np.concatenate(masks, axis=0)
                 result = masked_multilabel_perframe_metrics(pred_scores, gt_targets, masks, self.all_class_names)
                 num_frames = int(masks.sum())
-                logger.info(f'TSU mAP: {result["mAP"]*100:.2f} | cAP: {result["cAP"]*100:.2f}')
+                logger.info(f'mAP: {result["mAP"]*100:.2f} | cAP: {result["cAP"]*100:.2f}')
             else:
                 num_frames = len(gt_targets)
                 result = self.eval_method(pred_scores, gt_targets, self.all_class_names, self.data_processing, self.metric)

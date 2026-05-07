@@ -1,3 +1,23 @@
+"""Full-video OAD datasets.
+
+Supports two annotation conventions:
+
+  TSU / Smarthome
+    * actions: [class_id, start_frame, end_frame]  (integer video frames)
+    * duration: int  (total frames in the raw video)
+    * frame_stride cfg key controls how feature indices map to frames
+      (default 16, matching the I3D extraction stride)
+
+  Charades
+    * actions: [class_id, start_sec, end_sec]  (float seconds)
+    * duration: float  (clip length in seconds)
+    * feature-to-time mapping is derived from (T_features / duration_sec)
+
+Both datasets share the same loading infrastructure and return the same
+5-tuple  (features, labels, mask, video_id, duration)  so they work with
+the same collate_fn, trainer and eval code.
+"""
+
 import difflib
 import json
 import os
@@ -28,14 +48,15 @@ def _load_feature_file(file_path):
         if isinstance(array, torch.Tensor):
             array = array.numpy()
     else:
-        raise ValueError(f'Unsupported TSU feature extension: {extension}')
+        raise ValueError(f'Unsupported feature file extension: {extension}')
     return np.asarray(array)
 
 
 def _normalize_feature_layout(features, expected_dim):
+    """Squeeze spatial singleton dimensions and ensure shape is (T, D)."""
     features = np.asarray(features)
-    
-    # Squeeze all singleton spatial dimensions (excluding the first dimension which is typically T or C)
+
+    # Squeeze all singleton spatial dimensions that are NOT the time axis.
     while features.ndim > 2:
         squeezed = False
         for axis in range(1, features.ndim):
@@ -45,23 +66,27 @@ def _normalize_feature_layout(features, expected_dim):
                 break
         if not squeezed:
             break
-    
-    # Verify we now have 2D
+
     if features.ndim != 2:
-        raise ValueError(f'Unexpected TSU feature shape: {features.shape}')
-    
-    # Ensure feature dimension is in the last position
+        raise ValueError(f'Unexpected feature shape after squeezing: {features.shape}')
+
+    # Ensure feature dimension is in the last position.
     if features.shape[1] != expected_dim:
         if features.shape[0] == expected_dim:
             features = features.T
         else:
-            raise ValueError(f'Expected feature dimension {expected_dim} not found in shape {features.shape}')
-    
+            raise ValueError(
+                f'Expected feature dimension {expected_dim} not found in shape {features.shape}'
+            )
+
     return features.astype(np.float32)
 
 
-@DATA_LAYERS.register('TSU')
-class TSUDataset(data.Dataset):
+class _FullVideoBase(data.Dataset):
+    """Shared loading, indexing and padding logic for full-video OAD datasets.
+
+    Subclasses must implement ``_render_labels``.
+    """
 
     def __init__(self, cfg, mode='train'):
         self.mode = mode
@@ -73,7 +98,6 @@ class TSUDataset(data.Dataset):
         self.t_max = cfg.get('T_max', 2500)
         self.num_classes = cfg['num_classes']
         self.feature_dim = cfg.get('input_dim', 1024)
-        self.frame_stride = cfg.get('tsu_frame_stride', 6)
         self.subset = 'training' if self.training else 'testing'
         self.feature_index = self._build_feature_index()
 
@@ -91,18 +115,21 @@ class TSUDataset(data.Dataset):
     def __len__(self):
         return len(self.entries)
 
+    # ------------------------------------------------------------------
+    # Path resolution helpers
+    # ------------------------------------------------------------------
+
     def _resolve_path(self, raw_path, expect_dir):
         if raw_path is None:
-            raise ValueError('TSU path cannot be None. Please set this in the config or CLI arguments.')
+            raise ValueError(
+                'A required path is None. '
+                'Set feature_root / split_file in the config or via --feature_root.'
+            )
 
         raw_path = osp.expanduser(raw_path)
-        candidates = []
-        if osp.isabs(raw_path):
-            candidates.append(raw_path)
-        else:
-            candidates.append(raw_path)
-            if self.config_dir:
-                candidates.append(osp.join(self.config_dir, raw_path))
+        candidates = [raw_path]
+        if not osp.isabs(raw_path) and self.config_dir:
+            candidates.append(osp.join(self.config_dir, raw_path))
 
         for candidate in candidates:
             candidate_abs = osp.abspath(candidate)
@@ -112,10 +139,15 @@ class TSUDataset(data.Dataset):
                 return candidate_abs
 
         target_type = 'directory' if expect_dir else 'file'
-        raise FileNotFoundError(f'Could not resolve TSU {target_type} path "{raw_path}". Tried: {candidates}')
+        raise FileNotFoundError(
+            f'Could not resolve {target_type} path "{raw_path}". Tried: {candidates}'
+        )
+
+    # ------------------------------------------------------------------
+    # Feature index
+    # ------------------------------------------------------------------
 
     def _build_feature_index(self):
-        # Index available feature files once to avoid repeated glob calls in __getitem__.
         index = {}
         self.feature_stems = []
         self.feature_index_canonical = {}
@@ -133,8 +165,7 @@ class TSUDataset(data.Dataset):
         return index
 
     def _resolve_feature_path(self, video_id):
-        keys = [video_id, video_id.strip(), video_id.lower(), video_id.strip().lower()]
-        for key in keys:
+        for key in [video_id, video_id.strip(), video_id.lower(), video_id.strip().lower()]:
             if key in self.feature_index:
                 return self.feature_index[key]
 
@@ -142,82 +173,122 @@ class TSUDataset(data.Dataset):
         if canonical_key in self.feature_index_canonical:
             return self.feature_index_canonical[canonical_key]
 
-        canonical_candidates = []
-        for stem in self.feature_stems:
-            canonical_stem = _canonical_video_id(stem)
-            if canonical_key and canonical_key in canonical_stem:
-                canonical_candidates.append(stem)
-        if len(canonical_candidates) == 1:
-            matched_stem = canonical_candidates[0]
-            return self.feature_index[matched_stem]
-
-        preferred = [
-            osp.join(self.feature_root, f'{video_id}.npy'),
-            osp.join(self.feature_root, f'{video_id}.npz'),
-            osp.join(self.feature_root, f'{video_id}.pt'),
+        canonical_candidates = [
+            stem for stem in self.feature_stems
+            if canonical_key and canonical_key in _canonical_video_id(stem)
         ]
-        for candidate in preferred:
+        if len(canonical_candidates) == 1:
+            return self.feature_index[canonical_candidates[0]]
+
+        for ext in ('.npy', '.npz', '.pt'):
+            candidate = osp.join(self.feature_root, f'{video_id}{ext}')
             if osp.exists(candidate):
                 return candidate
 
-        sample_names = sorted(set(self.feature_stems))[:5]
         close_matches = difflib.get_close_matches(video_id, self.feature_stems, n=3, cutoff=0.7)
         raise FileNotFoundError(
-            f'Could not find TSU features for "{video_id}" under "{self.feature_root}". '
+            f'Could not find features for "{video_id}" under "{self.feature_root}". '
             f'Indexed {len(self.feature_stems)} files. '
-            f'Closest stems: {close_matches}. Canonical contains matches: {canonical_candidates[:3]}. '
-            f'Sample stems: {sample_names}'
+            f'Closest: {close_matches}. Canonical contains: {canonical_candidates[:3]}.'
         )
 
     def _has_feature(self, video_id):
-        keys = [video_id, video_id.strip(), video_id.lower(), video_id.strip().lower()]
-        for key in keys:
+        for key in [video_id, video_id.strip(), video_id.lower(), video_id.strip().lower()]:
             if key in self.feature_index:
                 return True
-
         canonical_key = _canonical_video_id(video_id)
         if canonical_key in self.feature_index_canonical:
             return True
-
-        for stem in self.feature_stems:
-            canonical_stem = _canonical_video_id(stem)
-            if canonical_key and canonical_key in canonical_stem:
-                return True
-
-        return False
+        return any(
+            canonical_key and canonical_key in _canonical_video_id(stem)
+            for stem in self.feature_stems
+        )
 
     def _filter_missing_feature_entries(self):
-        filtered_entries = []
-        missing_video_ids = []
+        filtered_entries, missing_ids = [], []
         for video_id, record in self.entries:
             if self._has_feature(video_id):
                 filtered_entries.append((video_id, record))
             else:
-                missing_video_ids.append(video_id)
+                missing_ids.append(video_id)
 
-        if missing_video_ids:
-            missing_preview = missing_video_ids[:10]
-            message = (
-                f'[TSU-{self.subset}] Missing feature files for {len(missing_video_ids)} videos. '
-                f'Examples: {missing_preview}'
+        if missing_ids:
+            msg = (
+                f'[{self.__class__.__name__}-{self.subset}] '
+                f'Missing feature files for {len(missing_ids)} videos. '
+                f'Examples: {missing_ids[:10]}'
             )
             if self.strict_missing_features:
-                raise FileNotFoundError(message)
-            print(f'{message}. These samples will be skipped.')
+                raise FileNotFoundError(msg)
+            print(f'{msg}. These samples will be skipped.')
 
         self.entries = filtered_entries
 
+    # ------------------------------------------------------------------
+    # Per-epoch hook (no-op for full-video datasets)
+    # ------------------------------------------------------------------
+
     def _init_features(self):
-        """No-op for TSU.
+        """No-op.
 
         THUMOS/TVSeries datasets rebuild their sliding-window cache here each
-        epoch. TSU returns the full padded video per __getitem__, so there is
-        no per-epoch feature resampling to perform. This method only exists so
-        main.py can call trainloader.dataset._init_features() safely.
+        epoch. Full-video datasets (TSU, Charades) return the padded video
+        per __getitem__, so there is no per-epoch cache to refresh.
         """
         return
 
-    def _render_labels(self, actions, feature_length):
+    # ------------------------------------------------------------------
+    # Label rendering — implemented by subclasses
+    # ------------------------------------------------------------------
+
+    def _render_labels(self, actions, feature_length, record):
+        raise NotImplementedError
+
+    # ------------------------------------------------------------------
+    # __getitem__
+    # ------------------------------------------------------------------
+
+    def __getitem__(self, index):
+        video_id, record = self.entries[index]
+        feature_path = self._resolve_feature_path(video_id)
+        features = _load_feature_file(feature_path)
+        features = _normalize_feature_layout(features, self.feature_dim)
+        feature_length = min(features.shape[0], self.t_max)
+        features = features[:feature_length]
+        labels, mask = self._render_labels(record.get('actions', []), features.shape[0], record)
+
+        padded_features = np.zeros((self.t_max, features.shape[1]), dtype=np.float32)
+        padded_features[:features.shape[0]] = features
+
+        return (
+            torch.from_numpy(padded_features),
+            torch.from_numpy(labels),
+            torch.from_numpy(mask),
+            video_id,
+            # Duration stored as float for compatibility with both datasets:
+            # TSU → raw integer frames; Charades → float seconds.
+            float(record.get('duration', 0)),
+        )
+
+
+# ======================================================================
+# TSU / Smarthome  (actions in video frames, stride-based mapping)
+# ======================================================================
+
+@DATA_LAYERS.register('TSU')
+class TSUDataset(_FullVideoBase):
+    """TSU / Smarthome dataset.
+
+    Actions are stored as [class_id, start_frame, end_frame] using raw video
+    frame indices. Each I3D or CLIP feature corresponds to ``tsu_frame_stride``
+    consecutive video frames (default 16 for both I3D and CLIP extractions).
+    """
+
+    def __init__(self, cfg, mode='train'):
+        self.frame_stride = cfg.get('tsu_frame_stride', 16)
+        super().__init__(cfg, mode)
+
+    def _render_labels(self, actions, feature_length, record):
         sequence_length = min(feature_length, self.t_max)
         labels = np.zeros((self.t_max, self.num_classes), dtype=np.float32)
         mask = np.zeros((self.t_max,), dtype=np.float32)
@@ -231,22 +302,38 @@ class TSUDataset(data.Dataset):
 
         return labels, mask
 
-    def __getitem__(self, index):
-        video_id, record = self.entries[index]
-        feature_path = self._resolve_feature_path(video_id)
-        features = _load_feature_file(feature_path)
-        features = _normalize_feature_layout(features, self.feature_dim)
-        feature_length = min(features.shape[0], self.t_max)
-        features = features[:feature_length]
-        labels, mask = self._render_labels(record.get('actions', []), features.shape[0])
 
-        padded_features = np.zeros((self.t_max, features.shape[1]), dtype=np.float32)
-        padded_features[:features.shape[0]] = features
+# ======================================================================
+# Charades  (actions in seconds, time-based mapping)
+# ======================================================================
 
-        return (
-            torch.from_numpy(padded_features),
-            torch.from_numpy(labels),
-            torch.from_numpy(mask),
-            video_id,
-            int(record.get('duration', 0)),
-        )
+@DATA_LAYERS.register('CHARADES')
+class CharadesDataset(_FullVideoBase):
+    """Charades dataset.
+
+    Actions are stored as [class_id, start_sec, end_sec].  Features per second
+    is derived on-the-fly as  T_features / duration_sec  so the mapping is
+    exact regardless of the extraction frame rate.
+
+    157 action classes, all valid (no background class to skip).
+    """
+
+    def _render_labels(self, actions, feature_length, record):
+        sequence_length = min(feature_length, self.t_max)
+        labels = np.zeros((self.t_max, self.num_classes), dtype=np.float32)
+        mask = np.zeros((self.t_max,), dtype=np.float32)
+        mask[:sequence_length] = 1.0
+
+        duration_sec = float(record.get('duration', 0.0))
+        if duration_sec <= 0.0 or feature_length <= 0:
+            return labels, mask
+
+        fps_feat = feature_length / duration_sec  # features per second
+
+        for class_id, start_sec, end_sec in actions:
+            start_index = max(0, int(start_sec * fps_feat))
+            end_index = min(sequence_length - 1, int(end_sec * fps_feat))
+            if end_index >= start_index:
+                labels[start_index:end_index + 1, class_id] = 1.0
+
+        return labels, mask

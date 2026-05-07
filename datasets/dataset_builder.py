@@ -15,7 +15,8 @@ def build_dataset(cfg):
 
 def build_data_loader(cfg, mode):
     data_layer = build_dataset(cfg)
-    collate_fn = tsu_collate_fn if cfg['data_name'] == 'TSU' else None
+    # TSU and CHARADES both use the 5-tuple (features, labels, mask, video_id, duration) format.
+    collate_fn = tsu_collate_fn if cfg['data_name'] in {'TSU', 'CHARADES'} else None
     data_loader = data.DataLoader(
         dataset=data_layer(cfg, mode),
         batch_size=cfg["batch_size"] if mode == 'train' else cfg["test_batch_size"],
